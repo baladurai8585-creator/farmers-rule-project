@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmers Market - Live Listings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f4f0; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .navbar { background-color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .navbar .logo { font-weight: 700; font-size: 1.5rem; color: #2e7d32; text-decoration: none;}
+        .navbar .nav-links a { color: #333; text-decoration: none; margin-left: 15px; font-weight: 600; }
+        .navbar .welcome-msg { margin-right: 15px; font-weight: 600; color: #555;}
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #2e7d32; }
+        .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .listing-card { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: 20px; border-left: 5px solid #4caf50; position: relative; overflow: hidden; }
+        .veg-name { font-size: 1.8rem; font-weight: 700; color: #2e7d32; margin-bottom: 10px; }
+        .price-tag { font-size: 1.5rem; font-weight: 600; color: #e65100; margin-bottom: 15px; }
+        .details p { margin: 8px 0; font-size: 1.1rem; color: #555; }
+        .details a { color: #2e7d32; font-weight: 600; text-decoration: none; } /* Puthu style for link */
+        .contact-btn { display: inline-block; width: 100%; box-sizing: border-box; margin-top: 15px; padding: 12px 20px; background-color: #4caf50; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; text-align: center; border: none; cursor: pointer; }
+        .search-container { margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .search-container form { display: flex; }
+        .search-box { flex-grow: 1; border: 2px solid #ddd; padding: 10px; border-radius: 5px 0 0 5px; font-size: 1rem; }
+        .search-btn { border: none; background-color: #2e7d32; color: white; padding: 10px 20px; border-radius: 0 5px 5px 0; cursor: pointer; font-size: 1rem; }
+        .category-filters { text-align: center; margin-bottom: 30px; }
+        .category-btn { background-color: #fff; border: 2px solid #ddd; color: #333; padding: 8px 18px; margin: 5px; border-radius: 20px; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .category-btn.active { background-color: #2e7d32; color: white; border-color: #2e7d32; }
+        .listing-card.sold-out { opacity: 0.6; }
+        .sold-badge { position: absolute; top: 15px; right: -40px; background-color: #d32f2f; color: white; padding: 5px 40px; font-weight: 700; transform: rotate(45deg); font-size: 0.9rem; }
+        .contact-btn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 15px; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.3); text-align: center; }
+        .modal-btn { display: inline-block; text-decoration: none; color: white; padding: 12px 30px; border-radius: 25px; font-weight: 700; margin: 10px 5px 0 5px; background-color: #4caf50; }
+        .modal-map-btn { background-color: #3f51b5; }
+        .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <a href="/market" class="logo">Farmer's Rule</a>
+            <div class="nav-links">
+                {% if session.user_id %}
+                    <span class="welcome-msg">Welcome, {{ session.user_name }}!</span>
+                    {% if session.user_type == 'farmer' %}
+                        <a href="/profile">Profile</a> <a href="/add_listing">Add Listing</a> <a href="/dashboard">Dashboard</a>
+                    {% elif session.user_type == 'buyer' %}
+                        <a href="/buyer_profile">Profile</a>
+                    {% endif %}
+                    <a href="/logout">Logout</a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <header><h1>🌿 Farmers Market - Live Listings 🌿</h1></header>
+        
+        <div class="search-container">
+            <form action="/market" method="get">
+                <input type="text" name="query" class="search-box" placeholder="Search for a vegetable..." value="{{ search_query or '' }}">
+                <button type="submit" class="search-btn">Search</button>
+            </form>
+        </div>
+
+        <div class="category-filters">
+            <a href="/market" class="category-btn {{ 'active' if not active_category else '' }}">All</a>
+            {% for category in categories %}
+            <a href="/market?category={{ category }}" class="category-btn {{ 'active' if active_category == category else '' }}">{{ category }}</a>
+            {% endfor %}
+        </div>
+
+        <div class="listings-grid">
+            {% for listing in listings %}
+            <div class="listing-card {{ 'sold-out' if listing.is_sold == 1 else '' }}">
+                {% if listing.is_sold == 1 %}
+                    <div class="sold-badge">SOLD OUT</div>
+                {% endif %}
+                <h2 class="veg-name">{{ listing['vegetable_name'] }}</h2>
+                <div class="price-tag">₹{{ "%.2f"|format(listing['rate_per_kg']) }} / Kg</div>
+                <div class="details">
+                    <p><strong>Available Quantity:</strong> {{ listing['quantity_kg'] }} Kgs</p>
+                    <p><strong>Farmer:</strong> <a href="{{ url_for('view_farmer', farmer_id=listing.farmer_id) }}">{{ listing.farmer_name }}</a></p>
+                </div>
+                <button class="contact-btn" 
+                        data-name="{{ listing['farmer_name'] }}" 
+                        data-place="{{ listing['farmer_place'] }}" 
+                        data-mobile="{{ listing['mobile_number'] }}"
+                        data-latitude="{{ listing['latitude'] }}"
+                        data-longitude="{{ listing['longitude'] }}"
+                        {{ 'disabled' if listing.is_sold == 1 else '' }}>
+                    📞 View Contact & Location
+                </button>
+            </div>
+            {% else %}
+                <p style="text-align: center; grid-column: 1 / -1;">No listings found for this category or search.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="farmerModal" class="modal"><div class="modal-content"><span class="close-btn">×</span><h2>Farmer Details</h2><p><strong>Name:</strong> <span id="modal-farmer-name"></span></p><p><strong>Place:</strong> <span id="modal-farmer-place"></span></p><p><strong>Mobile:</strong> <span id="modal-farmer-mobile"></span></p><div><a id="modal-call-btn" href="#" class="modal-btn">📞 Call Now</a><a id="modal-map-btn" href="#" target="_blank" class="modal-btn modal-map-btn" style="display: none;">🗺️ See Location on Map</a></div></div></div>
+    <script>
+        var modal = document.getElementById("farmerModal"); var closeBtn = document.getElementsByClassName("close-btn")[0]; var detailButtons = document.querySelectorAll('.contact-btn');
+        detailButtons.forEach(function(button) {
+            button.onclick = function() {
+                var name = this.getAttribute('data-name'); var place = this.getAttribute('data-place'); var mobile = this.getAttribute('data-mobile'); var lat = this.getAttribute('data-latitude'); var lon = this.getAttribute('data-longitude');
+                document.getElementById('modal-farmer-name').textContent = name; document.getElementById('modal-farmer-place').textContent = place; document.getElementById('modal-farmer-mobile').textContent = mobile; document.getElementById('modal-call-btn').href = 'tel:' + mobile;
+                var mapBtn = document.getElementById('modal-map-btn');
+                if (lat && lon && lat !== 'None' && lon !== 'None') { mapBtn.href = `https://maps.google.com/?q=${lat},${lon}`; mapBtn.style.display = 'inline-block'; } else { mapBtn.style.display = 'none'; }
+                modal.style.display = "block";
+            }
+        });
+        closeBtn.onclick = function() { modal.style.display = "none"; }
+        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+    </script>
+</body>
+</html>

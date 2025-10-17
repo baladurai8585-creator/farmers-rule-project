@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ farmer.name }}'s Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f4f0; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .navbar { background-color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .navbar .logo { font-weight: 700; font-size: 1.5rem; color: #2e7d32; text-decoration: none;}
+        .navbar .nav-links a { color: #333; text-decoration: none; margin-left: 15px; font-weight: 600; }
+        
+        .profile-header {
+            background: white; padding: 30px; border-radius: 10px; margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: flex; gap: 30px; align-items: center;
+        }
+        .profile-header-info h1 { font-size: 2.5rem; color: #2e7d32; margin: 0 0 5px 0; }
+        .profile-header-info p { margin: 0; font-size: 1.2rem; color: #555; }
+        #map { height: 200px; flex-grow: 1; border-radius: 10px; border: 2px solid #ddd; }
+
+        h2.section-title { font-size: 1.8rem; color: #333; margin-top: 40px; margin-bottom: 15px; border-bottom: 2px solid #2e7d32; padding-bottom: 5px; }
+        
+        .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .listing-card { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: 20px; border-left: 5px solid #4caf50; }
+        .veg-name { font-size: 1.8rem; font-weight: 700; color: #2e7d32; margin-bottom: 10px; }
+        .price-tag { font-size: 1.5rem; font-weight: 600; color: #e65100; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <a href="/market" class="logo">Farmer's Rule</a>
+            <div class="nav-links">
+                <a href="/market">Back to Market</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+
+        <div class="profile-header">
+            <div class="profile-header-info">
+                <h1>{{ farmer.name }}</h1>
+                <p>📍 From {{ farmer.place }}</p>
+                <p>📞 {{ farmer.mobile_number }}</p>
+            </div>
+            {% if farmer.latitude and farmer.longitude %}
+                <div id="map"></div>
+            {% else %}
+                <p>Location not set by this farmer.</p>
+            {% endif %}
+        </div>
+
+        <h2 class="section-title">Other Listings from this Farmer:</h2>
+
+        <div class="listings-grid">
+            {% for listing in listings %}
+            <div class="listing-card">
+                <h2 class="veg-name">{{ listing['vegetable_name'] }}</h2>
+                <div class="price-tag">₹{{ "%.2f"|format(listing['rate_per_kg']) }} / Kg</div>
+                <p><strong>Available Quantity:</strong> {{ listing['quantity_kg'] }} Kgs</p>
+            </div>
+            {% else %}
+                <p>This farmer has no other active listings.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if farmer.latitude and farmer.longitude %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        const lat = {{ farmer.latitude }};
+        const lng = {{ farmer.longitude }};
+        const map = L.map('map').setView([lat, lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup('{{ farmer.name }}\'s Farm Location')
+            .openPopup();
+    </script>
+    {% endif %}
+</body>
+</html>

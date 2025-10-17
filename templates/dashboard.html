@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f4f0; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .navbar { background-color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .navbar .logo { font-weight: 700; font-size: 1.5rem; color: #2e7d32; text-decoration: none;}
+        .navbar .nav-links a { color: #333; text-decoration: none; margin-left: 15px; font-weight: 600; }
+        h1 { color: #2e7d32; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #4caf50; color: white; }
+        .flash { padding: 10px; border-radius: 5px; text-align: center; font-weight: 600; color: white; margin-bottom: 15px; }
+        .action-btn { border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; color: white; font-weight: 600; margin-right: 5px; }
+        .toggle-btn-sold { background-color: #4CAF50; }
+        .toggle-btn-available { background-color: #f57c00; }
+        .delete-btn { background-color: #f44336; }
+        .status-sold { font-weight: 700; color: #d32f2f; }
+        .status-available { font-weight: 700; color: #388e3c; }
+
+        /* ## ITHU THAAN MACHA PUTHU EXTRA CHINNA BOX STYLES ## */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Min width innum koraichirukken */
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px; /* Padding koraichirukken */
+            border-radius: 8px; /* Radius-a chinna-tha aakirukken */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            text-align: center;
+            border-left: 4px solid #2e7d32; /* Border-a koraichirukken */
+        }
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 0.9rem; /* Heading font size-a koraichirukken */
+            color: #555;
+            font-weight: 600;
+        }
+        .stat-card .value {
+            font-size: 1.8rem; /* Number font size-a neraya koraichirukken */
+            font-weight: 700;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <a href="/market" class="logo">Farmer's Rule</a>
+            <div class="nav-links">
+                <a href="/market">Market</a> <a href="/profile">Profile</a> <a href="/add_listing">Add Listing</a> <a href="/logout">Logout</a>
+            </div>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+
+        <h1>Welcome to your Dashboard, {{ session.user_name }}!</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Active Listings</h3>
+                <p class="value">{{ active_count }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Items Sold</h3>
+                <p class="value">{{ sold_count }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Potential Earnings</h3>
+                <p class="value">₹{{ "%.2f"|format(earnings) }}</p>
+            </div>
+        </div>
+
+        <h2 style="color: #333;">Your Posted Listings</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Vegetable</th> <th>Quantity (Kg)</th> <th>Price/Kg (₹)</th> <th>Status</th> <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for listing in listings %}
+                <tr>
+                    <td>{{ listing['vegetable_name'] }}</td>
+                    <td>{{ listing['quantity_kg'] }}</td>
+                    <td>{{ "%.2f"|format(listing['rate_per_kg']) }}</td>
+                    <td>
+                        {% if listing.is_sold == 1 %} <span class="status-sold">Sold Out</span>
+                        {% else %} <span class="status-available">Available</span> {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('toggle_status', listing_id=listing['id']) }}" method="POST" style="display:inline;">
+                            {% if listing.is_sold == 1 %}
+                                <button type="submit" class="action-btn toggle-btn-sold">Mark as Available</button>
+                            {% else %}
+                                <button type="submit" class="action-btn toggle-btn-available">Mark as Sold</button>
+                            {% endif %}
+                        </form>
+                        <form action="{{ url_for('delete_listing', listing_id=listing['id']) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="action-btn delete-btn">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center;">You have not posted any listings yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

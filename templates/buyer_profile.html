@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f4f0; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .navbar { background-color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .navbar .logo { font-weight: 700; font-size: 1.5rem; color: #2e7d32; text-decoration: none;}
+        .navbar .nav-links a { color: #333; text-decoration: none; margin-left: 15px; font-weight: 600; }
+        .profile-container { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h1 { color: #2e7d32; text-align: center; margin-bottom: 20px;}
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #333; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1rem; }
+        .form-group input:read-only { background-color: #f9f9f9; }
+        .form-group input[name="latitude"], .form-group input[name="longitude"] { cursor: not-allowed; background-color: #f0f0f0; }
+        .btn { padding: 12px 20px; background-color: #4caf50; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-right: 10px; }
+        .btn-secondary { background-color: #0288d1; }
+        #map { height: 300px; width: 100%; border-radius: 10px; margin-bottom: 20px; border: 2px solid #ddd;}
+        .flash { padding: 10px; border-radius: 5px; text-align: center; font-weight: 600; color: white; margin-bottom: 15px; }
+        .flash.success { background-color: rgba(76, 175, 80, 0.8); }
+        hr { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+             <a href="/market" class="logo">Farmer's Rule</a>
+            <div class="nav-links">
+                <a href="/market">Market</a>
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+
+        <div class="profile-container">
+            <h1>Your Buyer Profile</h1>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+            {% endwith %}
+
+            <div class="user-details">
+                <div class="form-group"><label>Name</label><input type="text" value="{{ user.name }}" readonly></div>
+                <div class="form-group"><label>Place</label><input type="text" value="{{ user.place }}" readonly></div>
+                <div class="form-group"><label>Mobile Number</label><input type="text" value="{{ user.mobile_number }}" readonly></div>
+            </div>
+
+            <hr>
+
+            <p style="text-align: center; margin-bottom: 15px; font-weight: 600; font-size: 1.1rem; color: #333;">
+                Update your primary location:
+            </p>
+            <div id="map"></div>
+            <form action="/update_buyer_location" method="POST">
+                <div class="form-group"><label for="latitude">Latitude</label><input type="text" id="latitude" name="latitude" value="{{ user.latitude or '' }}" readonly required></div>
+                <div class="form-group"><label for="longitude">Longitude</label><input type="text" id="longitude" name="longitude" value="{{ user.longitude or '' }}" readonly required></div>
+                <button type="button" class="btn btn-secondary" onclick="useCurrentLocation()">Use My Current Location</button>
+                <button type="submit" class="btn">Save Location</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        let defaultLat = 13.0827; let defaultLng = 80.2707;
+        const savedLat = parseFloat(document.getElementById('latitude').value);
+        const savedLng = parseFloat(document.getElementById('longitude').value);
+        if (!isNaN(savedLat) && !isNaN(savedLng) && savedLat !== 0 && savedLng !== 0) { defaultLat = savedLat; defaultLng = savedLng; }
+        const map = L.map('map').setView([defaultLat, defaultLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+        const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+        function updateInputs(latlng) { document.getElementById('latitude').value = latlng.lat.toFixed(6); document.getElementById('longitude').value = latlng.lng.toFixed(6); }
+        marker.on('dragend', function(event) { updateInputs(event.target.getLatLng()); });
+        function useCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude; const lng = position.coords.longitude;
+                    map.setView([lat, lng], 15); marker.setLatLng([lat, lng]); updateInputs({ lat: lat, lng: lng });
+                }, function() { alert('Could not get your location. Please allow location access.'); });
+            } else { alert('Geolocation is not supported by this browser.'); }
+        }
+        updateInputs(marker.getLatLng());
+    </script>
+</body>
+</html>
