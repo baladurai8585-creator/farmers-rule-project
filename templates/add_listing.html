@@ -13,7 +13,7 @@
         .navbar .nav-links a { color: #333; text-decoration: none; margin-left: 15px; font-weight: 600; }
         h1 { color: #2e7d32; text-align: center; margin-bottom: 20px;}
         .vegetables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .vegetable-card { background: white; border-radius: 12px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
+        .vegetable-card { background: white; border-radius: 12px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); display: block; /* Puthu maatham */ }
         .vegetable-image img { width: 100%; height: 140px; object-fit: cover; border-radius: 12px 12px 0 0; }
         .vegetable-info { padding: 15px; }
         .vegetable-name { font-size: 1.3rem; color: #2e7d32; text-align: center; font-weight: 600; margin-bottom: 10px; }
@@ -25,15 +25,10 @@
         .action-buttons { text-align: center; margin-top: 30px; }
         .btn { padding: 14px 28px; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; background: linear-gradient(to right, #4caf50, #8bc34a); color: white; font-weight: 600; }
         .category-heading { font-size: 1.8rem; color: #333; margin-top: 40px; margin-bottom: 15px; border-bottom: 2px solid #2e7d32; padding-bottom: 5px; }
-
-        /* ## PUTHU SEARCH & FILTER STYLES ## */
         .controls-container { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .search-box { width: 100%; padding: 12px; font-size: 1.1rem; border: 2px solid #ddd; border-radius: 5px; margin-bottom: 15px; box-sizing: border-box; }
         .category-filters { text-align: center; }
-        .category-btn {
-            background-color: #e8f5e9; border: none; color: #2e7d32; padding: 8px 18px; margin: 5px;
-            border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.9rem;
-        }
+        .category-btn { background-color: #e8f5e9; border: none; color: #2e7d32; padding: 8px 18px; margin: 5px; border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
         .category-btn.active { background-color: #2e7d32; color: white; }
     </style>
 </head>
@@ -42,9 +37,7 @@
         <div class="navbar">
             <a href="/market" class="logo">Farmer's Rule</a>
             <div class="nav-links">
-                <a href="/market">Market</a>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/logout">Logout</a>
+                <a href="/market">Market</a> <a href="/dashboard">Dashboard</a> <a href="/logout">Logout</a>
             </div>
         </div>
         
@@ -55,9 +48,9 @@
             <input type="text" id="search-input" class="search-box" placeholder="Search for a vegetable...">
             <div class="category-filters" id="category-filters">
                 <button class="category-btn active" data-filter="all">All</button>
-                <button class="category-btn" data-filter="Fruiting Vegetables">Fruiting Vegetables</button>
-                <button class="category-btn" data-filter="Root Vegetables">Root Vegetables</button>
-                <button class="category-btn" data-filter="Leafy Greens">Leafy Greens</button>
+                {% for category in vegetables.keys() %}
+                <button class="category-btn" data-filter="{{ category }}">{{ category }}</button>
+                {% endfor %}
             </div>
         </div>
 
@@ -68,7 +61,7 @@
                 <div class="vegetables-grid">
                     {% for veg in veggies %}
                     <div class="vegetable-card" data-name="{{ veg.name.lower() }}">
-                        <div class="vegetable-image"><img src="https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=500&q=60" alt="{{ veg.name }}"></div>
+                        <div class="vegetable-image"><img src="{{ veg.img }}" alt="{{ veg.name }}"></div>
                         <div class="vegetable-info">
                             <h3 class="vegetable-name">{{ veg.name }}</h3>
                             <div class="input-group">
@@ -82,7 +75,6 @@
                 </div>
             </div>
             {% endfor %}
-
             <div class="action-buttons">
                 <button type="submit" class="btn">Post All Selected Items</button>
             </div>
@@ -94,64 +86,28 @@
             // Price Calculation Logic
             const allCardsForCalc = document.querySelectorAll('.vegetable-card');
             allCardsForCalc.forEach(function(card) {
-                const kgInput = card.querySelector('.kg-input');
-                const rateInput = card.querySelector('.rate-input');
-                const totalDisplay = card.querySelector('.card-total');
-                function calculateCardTotal() {
-                    const kg = parseFloat(kgInput.value) || 0;
-                    const rate = parseFloat(rateInput.value) || 0;
-                    totalDisplay.textContent = `Total: ₹${(kg * rate).toFixed(2)}`;
-                }
-                kgInput.addEventListener('input', calculateCardTotal);
-                rateInput.addEventListener('input', calculateCardTotal);
+                const kgInput = card.querySelector('.kg-input'); const rateInput = card.querySelector('.rate-input'); const totalDisplay = card.querySelector('.card-total');
+                function calculateCardTotal() { const kg = parseFloat(kgInput.value) || 0; const rate = parseFloat(rateInput.value) || 0; totalDisplay.textContent = `Total: ₹${(kg * rate).toFixed(2)}`; }
+                kgInput.addEventListener('input', calculateCardTotal); rateInput.addEventListener('input', calculateCardTotal);
             });
-
             // Search and Filter Logic
             const searchInput = document.getElementById('search-input');
             const filterButtons = document.querySelectorAll('.category-btn');
             const categorySections = document.querySelectorAll('.category-section');
-            const allVeggieCards = document.querySelectorAll('.vegetable-card');
-
             function updateView() {
-                const searchTerm = searchInput.value.toLowerCase();
-                const activeFilter = document.querySelector('.category-btn.active').dataset.filter;
-
+                const searchTerm = searchInput.value.toLowerCase(); const activeFilter = document.querySelector('.category-btn.active').dataset.filter;
                 categorySections.forEach(section => {
                     let sectionHasVisibleCard = false;
                     const cardsInSection = section.querySelectorAll('.vegetable-card');
-
                     cardsInSection.forEach(card => {
-                        const nameMatch = card.dataset.name.includes(searchTerm);
-                        const categoryMatch = (activeFilter === 'all' || section.dataset.category === activeFilter);
-
-                        if (nameMatch && categoryMatch) {
-                            card.style.display = 'block';
-                            sectionHasVisibleCard = true;
-                        } else {
-                            card.style.display = 'none';
-                        }
+                        const nameMatch = card.dataset.name.includes(searchTerm); const categoryMatch = (activeFilter === 'all' || section.dataset.category === activeFilter);
+                        if (nameMatch && categoryMatch) { card.style.display = 'block'; sectionHasVisibleCard = true; } else { card.style.display = 'none'; }
                     });
-
-                    // Hide category heading if no cards are visible in it
-                    if (sectionHasVisibleCard) {
-                        section.style.display = 'block';
-                    } else {
-                        section.style.display = 'none';
-                    }
+                    if (sectionHasVisibleCard) { section.style.display = 'block'; } else { section.style.display = 'none'; }
                 });
             }
-
             searchInput.addEventListener('input', updateView);
-
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                    updateView();
-                });
-            });
-
-            // Initial view update
+            filterButtons.forEach(button => { button.addEventListener('click', function() { filterButtons.forEach(btn => btn.classList.remove('active')); this.classList.add('active'); updateView(); }); });
             updateView();
         });
     </script>
